@@ -1,201 +1,130 @@
 package com.example.botonpanicovertice;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PointF;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.animation.DecelerateInterpolator;
 
 import androidx.core.content.ContextCompat;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AlertPieView extends View {
 
-    public interface OnAlertListener {
+    public interface AlertPieListener {
         void onAlert(String alertType);
     }
 
-    private enum Section {
-        SEGURIDAD, SALUD, INCENDIO, ASISTENCIA, NONE
-    }
-
-    private static final int LONG_PRESS_DURATION = 3000;
-    private static final float MARGIN_ANGLE = 2.5f; // Ángulo para el margen entre secciones
-    private static final float CORNER_RADIUS = 20f; // Radio para las esquinas redondeadas
-
-    private Paint paintSeguridad, paintSalud, paintIncendio, paintAsistencia, textPaint, titlePaint, progressPaint;
-    private RectF pieBounds;
-    private Drawable iconSeguridad, iconSalud, iconIncendio, iconAsistencia;
-
-    private float centerX, centerY, radius;
-    private Section touchedSection = Section.NONE;
-    private ValueAnimator progressAnimator;
-    private ValueAnimator scaleAnimator;
-    private float animationProgress = 0f;
-    private float currentScale = 1f;
-
-    private Handler longPressHandler = new Handler(Looper.getMainLooper());
-    private Runnable longPressRunnable;
-
-    private OnAlertListener onAlertListener;
+    private Paint paint;
+    private Paint textPaint;
+    private List<AlertSection> sections = new ArrayList<>();
+    private PointF center;
+    private float radius;
+    private float centerCircleRadius;
+    private AlertPieListener listener;
+    private static final String TAG = "AlertPieView";
+    private int pressedSection = -1;
 
     public AlertPieView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
-    public void setOnAlertListener(OnAlertListener listener) {
-        this.onAlertListener = listener;
-    }
-
     private void init() {
-        paintSeguridad = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintSeguridad.setStyle(Paint.Style.FILL);
-        paintSeguridad.setColor(ContextCompat.getColor(getContext(), R.color.seguridad));
-
-        paintSalud = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintSalud.setStyle(Paint.Style.FILL);
-        paintSalud.setColor(ContextCompat.getColor(getContext(), R.color.salud));
-
-        paintIncendio = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintIncendio.setStyle(Paint.Style.FILL);
-        paintIncendio.setColor(ContextCompat.getColor(getContext(), R.color.incendio));
-
-        paintAsistencia = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintAsistencia.setStyle(Paint.Style.FILL);
-        paintAsistencia.setColor(ContextCompat.getColor(getContext(), R.color.asistencia));
+        paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setStyle(Paint.Style.FILL);
 
         textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(Color.WHITE);
         textPaint.setTextSize(40);
         textPaint.setTextAlign(Paint.Align.CENTER);
 
-        titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        titlePaint.setColor(Color.BLACK);
-        titlePaint.setTextSize(50);
-        titlePaint.setTextAlign(Paint.Align.CENTER);
-        titlePaint.setFakeBoldText(true);
+        center = new PointF();
+    }
 
-        progressPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        progressPaint.setStyle(Paint.Style.FILL);
-        progressPaint.setColor(Color.argb(128, 255, 255, 255)); // Semi-transparent white
+    public void setListener(AlertPieListener listener) {
+        this.listener = listener;
+    }
 
-        pieBounds = new RectF();
-
-        // Load icons
-        iconSeguridad = ContextCompat.getDrawable(getContext(), R.drawable.ic_security);
-        iconSalud = ContextCompat.getDrawable(getContext(), R.drawable.ic_health);
-        iconIncendio = ContextCompat.getDrawable(getContext(), R.drawable.ic_fire);
-        iconAsistencia = ContextCompat.getDrawable(getContext(), R.drawable.ic_assistance);
+    public void addSection(String type, int color, Drawable icon) {
+        sections.add(new AlertSection(type, color, icon));
+        invalidate();
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        centerX = w / 2f;
-        centerY = h / 2f;
-        radius = Math.min(w, h) / 2f * 0.9f;
-        pieBounds.set(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+        float usableWidth = w - getPaddingLeft() - getPaddingRight();
+        float usableHeight = h - getPaddingTop() - getPaddingBottom();
+        radius = Math.min(usableWidth, usableHeight) / 2;
+        center.x = getPaddingLeft() + usableWidth / 2;
+        center.y = getPaddingTop() + usableHeight / 2;
+        centerCircleRadius = radius / 3;
+        updateSections(w, h);
     }
+
+    private void updateSections(float width, float height) {
+        if (sections.isEmpty()) return;
+
+        float sweepAngle = 360f / sections.size();
+        float startAngle = -90 - sweepAngle / 2;
+
+        for (int i = 0; i < sections.size(); i++) {
+            AlertSection section = sections.get(i);
+            Path path = new Path();
+            RectF rect = new RectF(center.x - radius, center.y - radius, center.x + radius, center.y + radius);
+            path.moveTo(center.x, center.y);
+            path.arcTo(rect, startAngle + i * sweepAngle, sweepAngle);
+            path.close();
+            section.setPath(path);
+
+            // Posición del ícono
+            float iconRadius = radius * 0.65f; // Mover los íconos más lejos del centro
+            float angle = startAngle + i * sweepAngle + sweepAngle / 2;
+            double rad = Math.toRadians(angle);
+            float x = (float) (center.x + iconRadius * Math.cos(rad));
+            float y = (float) (center.y + iconRadius * Math.sin(rad));
+            section.setIconPosition(new PointF(x, y));
+        }
+    }
+
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        if (sections.isEmpty() || center.x == 0) return;
 
-        float sweepAngle = 90 - MARGIN_ANGLE;
-
-        // Draw sections with hover effect
-        drawSection(canvas, 180 + MARGIN_ANGLE / 2, sweepAngle, paintSeguridad, Section.SEGURIDAD);
-        drawSection(canvas, 270 + MARGIN_ANGLE / 2, sweepAngle, paintSalud, Section.SALUD);
-        drawSection(canvas, 0 + MARGIN_ANGLE / 2, sweepAngle, paintIncendio, Section.INCENDIO);
-        drawSection(canvas, 90 + MARGIN_ANGLE / 2, sweepAngle, paintAsistencia, Section.ASISTENCIA);
-
-        // Draw text and icons
-        drawSectionContent(canvas, "Seguridad", iconSeguridad, 225);
-        drawSectionContent(canvas, "Salud", iconSalud, 315);
-        drawSectionContent(canvas, "Incendio", iconIncendio, 45);
-        drawSectionContent(canvas, "Asistencia", iconAsistencia, 135);
-
-        // Draw progress animation on top
-        if (touchedSection != Section.NONE && animationProgress > 0) {
-            float startAngle = getStartAngleForSection(touchedSection);
-            Path progressPath = createRoundedWedgePath(startAngle, sweepAngle * animationProgress, CORNER_RADIUS);
-            canvas.drawPath(progressPath, progressPaint);
+        for (AlertSection section : sections) {
+            paint.setColor(section.isPressed() ? Color.LTGRAY : section.getColor());
+            canvas.drawPath(section.getPath(), paint);
+            drawIconWithText(canvas, section);
         }
 
-        // Draw central title
-        canvas.drawText("BOTÓN DE PÁNICO", centerX, centerY, titlePaint);
+        paint.setColor(Color.WHITE);
+        canvas.drawCircle(center.x, center.y, centerCircleRadius, paint);
     }
 
-    private void drawSection(Canvas canvas, float startAngle, float sweepAngle, Paint paint, Section section) {
-        canvas.save();
-        if (section == touchedSection) {
-            canvas.scale(currentScale, currentScale, centerX, centerY);
-        }
-        Path path = createRoundedWedgePath(startAngle, sweepAngle, CORNER_RADIUS);
-        canvas.drawPath(path, paint);
-        canvas.restore();
-    }
+    private void drawIconWithText(Canvas canvas, AlertSection section) {
+        Drawable icon = section.getIcon();
+        PointF position = section.getIconPosition();
+        if (icon == null || position == null) return;
 
-    private Path createRoundedWedgePath(float startAngle, float sweepAngle, float cornerRadius) {
-        Path path = new Path();
-        float r = radius;
-
-        double startAngleRad = Math.toRadians(startAngle);
-        double endAngleRad = Math.toRadians(startAngle + sweepAngle);
-
-        // Outer arc
-        RectF outerArcRect = new RectF(centerX - r, centerY - r, centerX + r, centerY + r);
-        path.arcTo(outerArcRect, startAngle, sweepAngle);
-
-        // Bottom right corner
-        float bottomRightCornerX = (float) (centerX + (r - cornerRadius) * Math.cos(endAngleRad));
-        float bottomRightCornerY = (float) (centerY + (r - cornerRadius) * Math.sin(endAngleRad));
-        RectF bottomRightCornerRect = new RectF(bottomRightCornerX - cornerRadius, bottomRightCornerY - cornerRadius, bottomRightCornerX + cornerRadius, bottomRightCornerY + cornerRadius);
-        path.arcTo(bottomRightCornerRect, startAngle + sweepAngle, -90);
-
-        // Line to inner radius
-        path.lineTo(centerX + cornerRadius, centerY);
-
-        // Top left corner
-        float topLeftCornerX = (float) (centerX + cornerRadius * Math.cos(startAngleRad));
-        float topLeftCornerY = (float) (centerY + cornerRadius * Math.sin(startAngleRad));
-        RectF topLeftCornerRect = new RectF(topLeftCornerX - cornerRadius, topLeftCornerY - cornerRadius, topLeftCornerX + cornerRadius, topLeftCornerY + cornerRadius);
-        path.arcTo(topLeftCornerRect, startAngle - 90, -90);
-
-
-        path.close();
-        return path;
-    }
-
-
-    private void drawSectionContent(Canvas canvas, String text, Drawable icon, float angle) {
-        float textRadius = radius * 0.7f; // Push text a bit further
-        float iconRadius = radius * 0.5f; // Pull icon a bit closer
-        float iconSize = radius * 0.18f; // Slightly smaller icon
-
-        double rad = Math.toRadians(angle);
-        float textX = (float) (centerX + textRadius * Math.cos(rad));
-        float textY = (float) (centerY + textRadius * Math.sin(rad));
-        float iconX = (float) (centerX + iconRadius * Math.cos(rad));
-        float iconY = (float) (centerY + iconRadius * Math.sin(rad));
-
-        // Adjust textY to be more centered in its arc
-        Paint.FontMetrics fm = textPaint.getFontMetrics();
-        textY -= (fm.ascent + fm.descent) / 2;
-
-        canvas.drawText(text, textX, textY, textPaint);
-
-        icon.setBounds((int) (iconX - iconSize), (int) (iconY - iconSize), (int) (iconX + iconSize), (int) (iconY + iconSize));
+        int iconSize = (int) (radius / 4); // Tamaño del ícono dinámico
+        icon.setBounds((int) position.x - iconSize / 2, (int) position.y - iconSize / 2, (int) position.x + iconSize / 2, (int) position.y + iconSize / 2);
         icon.draw(canvas);
+
+        // Dibujar el texto debajo del ícono
+        float textY = position.y + iconSize / 2 + 40; // 40 es el offset para el texto
+        canvas.drawText(section.getType(), position.x, textY, textPaint);
     }
 
 
@@ -203,32 +132,54 @@ public class AlertPieView extends View {
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
         float y = event.getY();
+        int currentSection = getSectionAt(x, y);
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                touchedSection = getSectionForPoint(x, y);
-                if (touchedSection != Section.NONE) {
-                    startAnimation();
-                    return true;
+                pressedSection = currentSection;
+                if (pressedSection != -1) {
+                    sections.get(pressedSection).setPressed(true);
+                    invalidate();
                 }
-                return false;
-
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                cancelAnimation();
-                touchedSection = Section.NONE;
                 return true;
+            case MotionEvent.ACTION_MOVE:
+                if (currentSection != pressedSection) {
+                    if (pressedSection != -1) {
+                        sections.get(pressedSection).setPressed(false);
+                    }
+                    pressedSection = currentSection;
+                    if (pressedSection != -1) {
+                        sections.get(pressedSection).setPressed(true);
+                    }
+                    invalidate();
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                if (pressedSection != -1) {
+                    sections.get(pressedSection).setPressed(false);
+                    invalidate();
+                    if (listener != null) {
+                        listener.onAlert(sections.get(pressedSection).getType());
+                    }
+                }
+                return true;
+            case MotionEvent.ACTION_CANCEL:
+                if (pressedSection != -1) {
+                    sections.get(pressedSection).setPressed(false);
+                    invalidate();
+                }
+                break;
         }
         return super.onTouchEvent(event);
     }
 
-    private Section getSectionForPoint(float x, float y) {
-        float dx = x - centerX;
-        float dy = y - centerY;
-        float distanceSq = dx * dx + dy * dy;
+    private int getSectionAt(float x, float y) {
+        float dx = x - center.x;
+        float dy = y - center.y;
+        float dist = (float) Math.sqrt(dx * dx + dy * dy);
 
-        if (distanceSq > radius * radius) {
-            return Section.NONE; // Outside the pie
+        if (dist > radius || dist < centerCircleRadius) {
+            return -1;
         }
 
         double angle = Math.toDegrees(Math.atan2(dy, dx));
@@ -236,87 +187,50 @@ public class AlertPieView extends View {
             angle += 360;
         }
 
-        if (angle >= 180 && angle < 270) {
-            return Section.SEGURIDAD;
-        } else if (angle >= 270 && angle < 360) {
-            return Section.SALUD;
-        } else if (angle >= 0 && angle < 90) {
-            return Section.INCENDIO;
-        } else if (angle >= 90 && angle < 180) {
-            return Section.ASISTENCIA;
-        }
-        return Section.NONE;
-    }
+        float sweepAngle = 360f / sections.size();
+        float startAngle = -90 - sweepAngle / 2;
+        if (startAngle < 0) startAngle += 360;
 
-    private void startAnimation() {
-        cancelAnimation(); // Ensure no other animation is running
+        for (int i = 0; i < sections.size(); i++) {
+            float sectionStartAngle = (startAngle + i * sweepAngle) % 360;
+            float sectionEndAngle = (sectionStartAngle + sweepAngle) % 360;
 
-        // Progress animation
-        progressAnimator = ValueAnimator.ofFloat(0f, 1f);
-        progressAnimator.setDuration(LONG_PRESS_DURATION);
-        progressAnimator.addUpdateListener(animator -> {
-            animationProgress = (float) animator.getAnimatedValue();
-            invalidate();
-        });
-
-        // Scale animation for hover effect
-        scaleAnimator = ValueAnimator.ofFloat(1f, 1.05f);
-        scaleAnimator.setDuration(200);
-        scaleAnimator.setInterpolator(new DecelerateInterpolator());
-        scaleAnimator.addUpdateListener(animator -> {
-            currentScale = (float) animator.getAnimatedValue();
-            invalidate();
-        });
-
-        longPressRunnable = () -> {
-            if (onAlertListener != null) {
-                onAlertListener.onAlert(touchedSection.name());
+            if (sectionEndAngle < sectionStartAngle) { // Cruza la línea de 0/360 grados
+                if (angle >= sectionStartAngle || angle < sectionEndAngle) {
+                    return i;
+                }
+            } else {
+                if (angle >= sectionStartAngle && angle < sectionEndAngle) {
+                    return i;
+                }
             }
-            cancelAnimation();
-        };
-
-        progressAnimator.start();
-        scaleAnimator.start();
-        longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_DURATION);
+        }
+        return -1;
     }
 
-    private void cancelAnimation() {
-        if (progressAnimator != null && progressAnimator.isRunning()) {
-            progressAnimator.cancel();
-        }
-        if (longPressRunnable != null) {
-            longPressHandler.removeCallbacks(longPressRunnable);
+    private static class AlertSection {
+        private String type;
+        private int color;
+        private Drawable icon;
+        private Path path;
+        private PointF iconPosition;
+        private boolean isPressed = false;
+
+        AlertSection(String type, int color, Drawable icon) {
+            this.type = type;
+            this.color = color;
+            this.icon = icon;
         }
 
-        // Animate scale back to normal
-        if (scaleAnimator != null && scaleAnimator.isRunning()) {
-            scaleAnimator.cancel();
-        }
-        scaleAnimator = ValueAnimator.ofFloat(currentScale, 1f);
-        scaleAnimator.setDuration(200);
-        scaleAnimator.setInterpolator(new DecelerateInterpolator());
-        scaleAnimator.addUpdateListener(animator -> {
-            currentScale = (float) animator.getAnimatedValue();
-            invalidate();
-        });
-        scaleAnimator.start();
-
-        animationProgress = 0f;
-        invalidate();
-    }
-
-    private float getStartAngleForSection(Section section) {
-        switch (section) {
-            case SEGURIDAD:
-                return 180 + MARGIN_ANGLE / 2;
-            case SALUD:
-                return 270 + MARGIN_ANGLE / 2;
-            case INCENDIO:
-                return 0 + MARGIN_ANGLE / 2;
-            case ASISTENCIA:
-                return 90 + MARGIN_ANGLE / 2;
-            default:
-                return 0;
-        }
+        // Getters y Setters
+        String getType() { return type; }
+        int getColor() { return color; }
+        Drawable getIcon() { return icon; }
+        Path getPath() { return path; }
+        void setPath(Path path) { this.path = path; }
+        PointF getIconPosition() { return iconPosition; }
+        void setIconPosition(PointF iconPosition) { this.iconPosition = iconPosition; }
+        boolean isPressed() { return isPressed; }
+        void setPressed(boolean pressed) { isPressed = pressed; }
     }
 }
