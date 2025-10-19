@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Paleta de colores para AlertPieView -->
+    <color name="seguridad">#3498DB</color> <!-- Azul -->
+    <color name="salud">#2ECC71</color>     <!-- Verde -->
+    <color name="incendio">#E74C3C</color>  <!-- Rojo -->
+    <color name="asistencia">#F1C40F</color>
+    <color name="colorIncendio">#D32F2F</color>
+    <color name="colorSalud">#D32F2F</color>
+    <color name="colorSeguridad">#D32F2F</color>
+    <color name="colorAsistencia">#D32F2F</color>
+    <color name="ripple_light">#33000000</color><!-- Amarillo -->
+</resources>
