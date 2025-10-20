@@ -29,13 +29,13 @@ public class AlertPieView extends View {
 
     private static final int LONG_PRESS_DURATION = 3000;
     private static final float MARGIN_ANGLE = 2.5f;
-    private static final float CORNER_RADIUS = 20f;
+    private static final float CORNER_RADIUS = 20f; // Radio de las esquinas
 
     private Paint paintSeguridad, paintSalud, paintIncendio, paintAsistencia, textPaint, progressPaint;
     private RectF pieBounds;
     private Drawable iconSeguridad, iconSalud, iconIncendio, iconAsistencia;
 
-    private float centerX, centerY, radius;
+    private float centerX, centerY, radius, innerRadius; // Añadido innerRadius
     private Section touchedSection = Section.NONE;
     private ValueAnimator progressAnimator;
     private ValueAnimator scaleAnimator;
@@ -59,31 +59,25 @@ public class AlertPieView extends View {
     private void init() {
         paintSeguridad = new Paint(Paint.ANTI_ALIAS_FLAG);
         paintSeguridad.setStyle(Paint.Style.FILL);
-        paintSeguridad.setColor(ContextCompat.getColor(getContext(), R.color.seguridad)); //
+        paintSeguridad.setColor(ContextCompat.getColor(getContext(), R.color.seguridad));
 
         paintSalud = new Paint(Paint.ANTI_ALIAS_FLAG);
         paintSalud.setStyle(Paint.Style.FILL);
-        paintSalud.setColor(ContextCompat.getColor(getContext(), R.color.salud)); //
+        paintSalud.setColor(ContextCompat.getColor(getContext(), R.color.salud));
 
         paintIncendio = new Paint(Paint.ANTI_ALIAS_FLAG);
         paintIncendio.setStyle(Paint.Style.FILL);
-        paintIncendio.setColor(ContextCompat.getColor(getContext(), R.color.incendio)); //
+        paintIncendio.setColor(ContextCompat.getColor(getContext(), R.color.incendio));
 
         paintAsistencia = new Paint(Paint.ANTI_ALIAS_FLAG);
         paintAsistencia.setStyle(Paint.Style.FILL);
-        paintAsistencia.setColor(ContextCompat.getColor(getContext(), R.color.asistencia)); //
+        paintAsistencia.setColor(ContextCompat.getColor(getContext(), R.color.asistencia));
 
-        // --- INICIO DE CAMBIO ---
-        // Texto de las secciones (Seguridad, Salud, etc.) más pequeño y en negrita
         textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(34); // Reducido de 40
+        textPaint.setTextSize(34);
         textPaint.setTextAlign(Paint.Align.CENTER);
-        textPaint.setFakeBoldText(true); // Añadido
-        // --- FIN DE CAMBIO ---
-
-        // El titlePaint ya no es necesario aquí si se quita de onDraw
-        // titlePaint = ...
+        textPaint.setFakeBoldText(true);
 
         progressPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         progressPaint.setStyle(Paint.Style.FILL);
@@ -91,11 +85,11 @@ public class AlertPieView extends View {
 
         pieBounds = new RectF();
 
-        // Carga de iconos desde los archivos del proyecto
-        iconSeguridad = ContextCompat.getDrawable(getContext(), R.drawable.ic_security); //
-        iconSalud = ContextCompat.getDrawable(getContext(), R.drawable.ic_health); //
-        iconIncendio = ContextCompat.getDrawable(getContext(), R.drawable.ic_fire); //
-        iconAsistencia = ContextCompat.getDrawable(getContext(), R.drawable.ic_assistance); //
+        // Carga de iconos
+        iconSeguridad = ContextCompat.getDrawable(getContext(), R.drawable.ic_security);
+        iconSalud = ContextCompat.getDrawable(getContext(), R.drawable.ic_health);
+        iconIncendio = ContextCompat.getDrawable(getContext(), R.drawable.ic_fire);
+        iconAsistencia = ContextCompat.getDrawable(getContext(), R.drawable.ic_assistance);
     }
 
     @Override
@@ -104,6 +98,7 @@ public class AlertPieView extends View {
         centerX = w / 2f;
         centerY = h / 2f;
         radius = Math.min(w, h) / 2f * 0.9f;
+        innerRadius = radius * 0.33f; // Define el radio interior (el "agujero" del donut)
         pieBounds.set(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
     }
 
@@ -112,27 +107,26 @@ public class AlertPieView extends View {
         super.onDraw(canvas);
 
         float sweepAngle = 90 - MARGIN_ANGLE;
+        float halfMargin = MARGIN_ANGLE / 2;
 
-        drawSection(canvas, 180 + MARGIN_ANGLE / 2, sweepAngle, paintSeguridad, Section.SEGURIDAD);
-        drawSection(canvas, 270 + MARGIN_ANGLE / 2, sweepAngle, paintSalud, Section.SALUD);
-        drawSection(canvas, 0 + MARGIN_ANGLE / 2, sweepAngle, paintIncendio, Section.INCENDIO);
-        drawSection(canvas, 90 + MARGIN_ANGLE / 2, sweepAngle, paintAsistencia, Section.ASISTENCIA);
+        // Dibuja las 4 secciones
+        drawSection(canvas, 180 + halfMargin, sweepAngle, paintSeguridad, Section.SEGURIDAD);
+        drawSection(canvas, 270 + halfMargin, sweepAngle, paintSalud, Section.SALUD);
+        drawSection(canvas, 0 + halfMargin, sweepAngle, paintIncendio, Section.INCENDIO);
+        drawSection(canvas, 90 + halfMargin, sweepAngle, paintAsistencia, Section.ASISTENCIA);
 
+        // Dibuja el contenido (íconos y texto)
         drawSectionContent(canvas, "Seguridad", iconSeguridad, 225);
         drawSectionContent(canvas, "Salud", iconSalud, 315);
         drawSectionContent(canvas, "Incendio", iconIncendio, 45);
         drawSectionContent(canvas, "Asistencia", iconAsistencia, 135);
 
+        // Dibuja el progreso de la pulsación
         if (touchedSection != Section.NONE && animationProgress > 0) {
             float startAngle = getStartAngleForSection(touchedSection);
-            Path progressPath = createRoundedWedgePath(startAngle, sweepAngle * animationProgress, CORNER_RADIUS);
+            Path progressPath = createRoundedDonutSegmentPath(startAngle, sweepAngle * animationProgress, CORNER_RADIUS, innerRadius);
             canvas.drawPath(progressPath, progressPaint);
         }
-
-        // --- INICIO DE CAMBIO ---
-        // Título central eliminado
-        // canvas.drawText("BOTÓN DE PÁNICO", centerX, centerY, titlePaint);
-        // --- FIN DE CAMBIO ---
     }
 
     private void drawSection(Canvas canvas, float startAngle, float sweepAngle, Paint paint, Section section) {
@@ -140,44 +134,57 @@ public class AlertPieView extends View {
         if (section == touchedSection) {
             canvas.scale(currentScale, currentScale, centerX, centerY);
         }
-        Path path = createRoundedWedgePath(startAngle, sweepAngle, CORNER_RADIUS);
+        Path path = createRoundedDonutSegmentPath(startAngle, sweepAngle, CORNER_RADIUS, innerRadius);
         canvas.drawPath(path, paint);
         canvas.restore();
     }
 
-    private Path createRoundedWedgePath(float startAngle, float sweepAngle, float cornerRadius) {
-        Path path = new Path();
-        float r = radius;
+    /**
+     * --- MÉTODO CORREGIDO ---
+     * Crea un Path para un segmento de "dona" (anillo) redondeado.
+     * Esto soluciona los problemas de márgenes y bordes.
+     */
+    private Path createRoundedDonutSegmentPath(float startAngle, float sweepAngle, float cornerRadius, float innerR) {
+        final Path path = new Path();
+        final RectF outerRect = new RectF(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+        final RectF innerRect = new RectF(centerX - innerR, centerY - innerR, centerX + innerR, centerY + innerR);
 
-        double startAngleRad = Math.toRadians(startAngle);
-        double endAngleRad = Math.toRadians(startAngle + sweepAngle);
+        float rad = (float) Math.toRadians(startAngle);
+        float x = centerX + (radius - cornerRadius) * (float) Math.cos(rad);
+        float y = centerY + (radius - cornerRadius) * (float) Math.sin(rad);
+        path.moveTo(x, y);
+        path.arcTo(new RectF(x - cornerRadius, y - cornerRadius, x + cornerRadius, y + cornerRadius), startAngle - 180, 90);
 
-        RectF outerArcRect = new RectF(centerX - r, centerY - r, centerX + r, centerY + r);
-        path.arcTo(outerArcRect, startAngle, sweepAngle);
+        path.arcTo(outerRect, startAngle, sweepAngle - (float) Math.toDegrees(2 * Math.asin(cornerRadius / radius)));
 
-        float bottomRightCornerX = (float) (centerX + (r - cornerRadius) * Math.cos(endAngleRad));
-        float bottomRightCornerY = (float) (centerY + (r - cornerRadius) * Math.sin(endAngleRad));
-        RectF bottomRightCornerRect = new RectF(bottomRightCornerX - cornerRadius, bottomRightCornerY - cornerRadius, bottomRightCornerX + cornerRadius, bottomRightCornerY + cornerRadius);
-        path.arcTo(bottomRightCornerRect, startAngle + sweepAngle, -90);
+        rad = (float) Math.toRadians(startAngle + sweepAngle);
+        x = centerX + (radius - cornerRadius) * (float) Math.cos(rad);
+        y = centerY + (radius - cornerRadius) * (float) Math.sin(rad);
+        path.arcTo(new RectF(x - cornerRadius, y - cornerRadius, x + cornerRadius, y + cornerRadius), startAngle + sweepAngle - 90, 90);
 
-        path.lineTo(centerX + cornerRadius, centerY);
+        float innerCornerRadius = (innerR == 0) ? 0 : cornerRadius;
+        rad = (float) Math.toRadians(startAngle + sweepAngle);
+        x = centerX + (innerR + innerCornerRadius) * (float) Math.cos(rad);
+        y = centerY + (innerR + innerCornerRadius) * (float) Math.sin(rad);
+        path.lineTo(x, y);
+        path.arcTo(new RectF(x - innerCornerRadius, y - innerCornerRadius, x + innerCornerRadius, y + innerCornerRadius), startAngle + sweepAngle, 90);
 
-        float topLeftCornerX = (float) (centerX + cornerRadius * Math.cos(startAngleRad));
-        float topLeftCornerY = (float) (centerY + cornerRadius * Math.sin(startAngleRad));
-        RectF topLeftCornerRect = new RectF(topLeftCornerX - cornerRadius, topLeftCornerY - cornerRadius, topLeftCornerX + cornerRadius, topLeftCornerY + cornerRadius);
-        path.arcTo(topLeftCornerRect, startAngle - 90, -90);
+        path.arcTo(innerRect, startAngle + sweepAngle, -sweepAngle + (float) Math.toDegrees(2 * Math.asin(innerCornerRadius / innerR)));
+
+        rad = (float) Math.toRadians(startAngle);
+        x = centerX + (innerR + innerCornerRadius) * (float) Math.cos(rad);
+        y = centerY + (innerR + innerCornerRadius) * (float) Math.sin(rad);
+        path.arcTo(new RectF(x - innerCornerRadius, y - innerCornerRadius, x + innerCornerRadius, y + innerCornerRadius), startAngle + 90, 90);
 
         path.close();
         return path;
     }
 
+
     private void drawSectionContent(Canvas canvas, String text, Drawable icon, float angle) {
-        // --- INICIO DE CAMBIO ---
-        // Invertidos los radios: ícono más lejos, texto más cerca.
-        float textRadius = radius * 0.5f; // Texto más cerca del centro
-        float iconRadius = radius * 0.7f; // Ícono más lejos del centro
+        float textRadius = radius * 0.5f;
+        float iconRadius = radius * 0.7f;
         float iconSize = radius * 0.18f;
-        // --- FIN DE CAMBIO ---
 
         double rad = Math.toRadians(angle);
         float textX = (float) (centerX + textRadius * Math.cos(rad));
@@ -193,7 +200,6 @@ public class AlertPieView extends View {
         icon.setBounds((int) (iconX - iconSize), (int) (iconY - iconSize), (int) (iconX + iconSize), (int) (iconY + iconSize));
         icon.draw(canvas);
     }
-
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -223,14 +229,9 @@ public class AlertPieView extends View {
         float dy = y - centerY;
         float distanceSq = dx * dx + dy * dy;
 
-        // --- INICIO DE CAMBIO ---
-        // Modificado para que no detecte el toque en el "agujero" central
-        // Asumimos que el "agujero" es 1/3 del radio
-        float innerRadius = radius / 3;
         if (distanceSq > radius * radius || distanceSq < innerRadius * innerRadius) {
             return Section.NONE;
         }
-        // --- FIN DE CAMBIO ---
 
         double angle = Math.toDegrees(Math.atan2(dy, dx));
         if (angle < 0) {
