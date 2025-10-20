@@ -105,9 +105,12 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
         // Inicializar el launcher para el selector de imágenes
         pickImagesLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        handleImageSelection(result.getData());
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                            handleImageSelection(result.getData());
+                        }
                     }
                 });
 
@@ -122,8 +125,11 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
     // --- NUEVO: Inicia el proceso de selección de imágenes ---
     private void openImagePicker() {
         if (!checkAndRequestStoragePermission()) {
+            // El permiso no está concedido, la solicitud ya se hizo.
             return;
         }
+
+        // Si el permiso está concedido, abre el selector
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
@@ -133,6 +139,7 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
     // --- NUEVO: Maneja el resultado del selector de imágenes ---
     private void handleImageSelection(Intent data) {
         if (data.getClipData() != null) {
+            // Múltiples imágenes seleccionadas
             ClipData clipData = data.getClipData();
             int count = clipData.getItemCount();
             for (int i = 0; i < count; i++) {
@@ -141,26 +148,24 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
                     break;
                 }
                 Uri imageUri = clipData.getItemAt(i).getUri();
-                if (!selectedImageUris.contains(imageUri)) {
-                    selectedImageUris.add(imageUri);
-                }
+                selectedImageUris.add(imageUri);
             }
         } else if (data.getData() != null) {
+            // Una sola imagen seleccionada
             if (selectedImageUris.size() < MAX_IMAGES) {
                 Uri imageUri = data.getData();
-                if (!selectedImageUris.contains(imageUri)) {
-                    selectedImageUris.add(imageUri);
-                }
+                selectedImageUris.add(imageUri);
             } else {
                 Toast.makeText(this, "Límite de 3 imágenes alcanzado", Toast.LENGTH_SHORT).show();
             }
         }
+
         updateImagePreviews();
     }
 
     // --- NUEVO: Muestra las imágenes seleccionadas en la UI ---
     private void updateImagePreviews() {
-        imagePreviewContainer.removeAllViews();
+        imagePreviewContainer.removeAllViews(); // Limpia vistas previas anteriores
 
         if (selectedImageUris.isEmpty()) {
             imagePreviewScrollView.setVisibility(View.GONE);
@@ -172,17 +177,20 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
         for (Uri uri : selectedImageUris) {
             ImageView imageView = new ImageView(this);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    (int) (80 * getResources().getDisplayMetrics().density),
+                    (int) (80 * getResources().getDisplayMetrics().density), // 80dp
                     LinearLayout.LayoutParams.MATCH_PARENT
             );
-            params.setMarginEnd((int) (8 * getResources().getDisplayMetrics().density));
+            params.setMarginEnd((int) (8 * getResources().getDisplayMetrics().density)); // 8dp
             imageView.setLayoutParams(params);
             imageView.setImageURI(uri);
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+            // Opcional: añadir un botón para eliminar la imagen
             imageView.setOnClickListener(v -> {
                 selectedImageUris.remove(uri);
                 updateImagePreviews();
             });
+
             imagePreviewContainer.addView(imageView);
         }
     }
@@ -191,14 +199,17 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
     private boolean checkAndRequestStoragePermission() {
         String permission;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+
             permission = Manifest.permission.READ_MEDIA_IMAGES;
         } else {
+            // Android 12 e inferior
             permission = Manifest.permission.READ_EXTERNAL_STORAGE;
         }
 
         if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
             return true;
         } else {
+            // Solicita el permiso
             ActivityCompat.requestPermissions(this, new String[]{permission}, STORAGE_PERMISSION_REQUEST_CODE);
             return false;
         }
@@ -206,6 +217,7 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
 
 
     private void showUserInfoDialog() {
+        // (Este método no cambia, se mantiene igual que en tu archivo)
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Información de Usuario");
         final View customLayout = getLayoutInflater().inflate(R.layout.dialog_user_info, null);
@@ -235,7 +247,8 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
     @Override
     public void onAlert(String alertType) {
         Log.d(TAG, "Tipo de alerta recibida: '" + alertType + "'");
-        Log.d(TAG, "Imágenes seleccionadas: " + selectedImageUris.size());
+        // Aquí podrías añadir lógica para adjuntar las 'selectedImageUris' a tu alerta.
+        // Por ahora, solo envía la alerta de texto.
         getCurrentLocationAndSendAlert(alertType);
     }
 
@@ -259,6 +272,7 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
     }
 
     private String getAddressFromCoordinates(double latitude, double longitude) {
+        // (Este método no cambia)
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         String addressText = "Dirección no encontrada";
         try {
@@ -266,36 +280,45 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
             if (addresses != null && !addresses.isEmpty()) {
                 Address address = addresses.get(0);
                 addressText = address.getAddressLine(0);
+                Log.d(TAG, "Dirección encontrada: " + addressText);
             }
         } catch (IOException e) {
             Log.e(TAG, "Error de Geocoder", e);
+            addressText = "Error al obtener la dirección desde las coordenadas";
         }
         return addressText;
     }
 
     private void sendPanicAlert(String alertType, double latitude, double longitude, String address) {
-        // En un futuro, aquí se procesarían las 'selectedImageUris' para enviarlas.
+        // (Este método no cambia, pero aquí es donde en el futuro enviarías las imágenes)
         String url = "https://prototipo-vertice-production.up.railway.app/api/v1/alertas/panico/";
         final String token = "4ZUEJQnaSzT54Q0Dq61Pk5iCiFkC6Mj_hw0-rf7lN4X8kvABhYEIc97SIOVmYG_E";
 
         JSONObject postData = new JSONObject();
         try {
             String categoria;
-            switch (alertType.toUpperCase()) {
-                case "SEGURIDAD": categoria = "4"; break;
-                case "SALUD": categoria = "1"; break;
-                case "INCENDIO": categoria = "2"; break;
-                case "ASISTENCIA": categoria = "5"; break;
-                default:
-                    Log.e(TAG, "Tipo de alerta desconocido: '" + alertType + "'");
-                    return;
+            if (alertType.equalsIgnoreCase("Seguridad")) categoria = "4";
+            else if (alertType.equalsIgnoreCase("Salud")) categoria = "1";
+            else if (alertType.equalsIgnoreCase("Incendio")) categoria = "2";
+            else if (alertType.equalsIgnoreCase("Asistencia")) categoria = "5";
+            else {
+                Log.e(TAG, "Tipo de alerta desconocido: '" + alertType + "'. No se enviará la petición.");
+                Toast.makeText(this, "Error: Tipo de alerta no válido", Toast.LENGTH_SHORT).show();
+                return;
             }
+
             postData.put("categoria", categoria);
             postData.put("descripcion", "Alerta de pánico tipo: " + alertType);
             postData.put("latitud", latitude);
             postData.put("longitud", longitude);
             postData.put("direccion", address);
             postData.put("procedencia", "2");
+
+            // Lógica futura: Aquí deberías convertir las 'selectedImageUris'
+            // a Base64 o subirlas a un storage y añadir las URLs al JSON.
+            // postData.put("imagenes", jsonArrayDeImagenes);
+
+            Log.d(TAG, "JSON a enviar: " + postData.toString());
         } catch (JSONException e) {
             Log.e(TAG, "Error creando el objeto JSON", e);
             return;
@@ -303,7 +326,9 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
 
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, postData,
                 response -> {
+                    Log.d(TAG, "RESPUESTA EXITOSA: " + response.toString());
                     Toast.makeText(this, "Alerta enviada correctamente", Toast.LENGTH_LONG).show();
+                    // Limpia las imágenes después de enviar la alerta
                     selectedImageUris.clear();
                     updateImagePreviews();
                 },
@@ -312,6 +337,7 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
                     if (error.networkResponse != null && error.networkResponse.data != null) {
                         try {
                             String responseBody = new String(error.networkResponse.data, "utf-8");
+                            Log.e(TAG, "CUERPO DEL ERROR DEL SERVIDOR: " + responseBody);
                             Toast.makeText(this, "Error del servidor: " + responseBody, Toast.LENGTH_LONG).show();
                         } catch (Exception e) {
                             Log.e(TAG, "Error al decodificar el cuerpo del error", e);
@@ -320,13 +346,14 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
                 }
         ) {
             @Override
-            public Map<String, String> getHeaders() {
+            public Map<String, String> getHeaders() throws AuthFailureError {
                 HashMap<String, String> headers = new HashMap<>();
                 headers.put("Content-Type", "application/json; charset=utf-8");
                 headers.put("Authorization", "Bearer " + token);
                 return headers;
             }
         };
+
         requestQueue.add(jsonObjectRequest);
     }
 
@@ -336,22 +363,30 @@ public class MainActivity extends AppCompatActivity implements AlertPieView.OnAl
         }
     }
 
+    /**
+     * Maneja el resultado del diálogo de solicitud de permisos (ACTUALIZADO)
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Permiso de ubicación concedido", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "Permiso de ubicación denegado.", Toast.LENGTH_LONG).show();
-            }
-        } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Permiso de galería concedido", Toast.LENGTH_SHORT).show();
-                openImagePicker();
-            } else {
-                Toast.makeText(this, "Permiso de galería denegado.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Permiso de ubicación denegado. La app no podrá enviar la ubicación.", Toast.LENGTH_LONG).show();
             }
         }
+        // --- NUEVO: Maneja el resultado del permiso de almacenamiento ---
+        else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Permiso de galería concedido", Toast.LENGTH_SHORT).show();
+                // Si el permiso se acaba de conceder, abre el selector
+                openImagePicker();
+            } else {
+                Toast.makeText(this, "Permiso de galería denegado. No se pueden seleccionar imágenes.", Toast.LENGTH_LONG).show();
+            }
+        }
+        // --- FIN NUEVO ---
     }
 }

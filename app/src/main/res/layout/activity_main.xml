@@ -30,6 +30,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintVertical_bias="0.3" />
 
+    <!-- Este es el contenedor para las vistas previas de las imágenes -->
     <HorizontalScrollView
         android:id="@+id/imagePreviewScrollView"
         android:layout_width="0dp"
@@ -52,6 +53,7 @@
 
     </HorizontalScrollView>
 
+    <!-- Este es el botón para abrir la cámara/galería -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabCamera"
         android:layout_width="wrap_content"
@@ -65,3 +67,4 @@
         android:contentDescription="Tomar foto o seleccionar de la galería" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

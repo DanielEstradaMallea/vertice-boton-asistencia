@@ -29,13 +29,12 @@ public class AlertPieView extends View {
 
     private static final int LONG_PRESS_DURATION = 3000;
     private static final float MARGIN_ANGLE = 2.5f;
-    private static final float CORNER_RADIUS = 20f; // Radio de las esquinas
+    private static final float CORNER_RADIUS = 20f;
 
     private Paint paintSeguridad, paintSalud, paintIncendio, paintAsistencia, textPaint, progressPaint;
-    private RectF pieBounds;
     private Drawable iconSeguridad, iconSalud, iconIncendio, iconAsistencia;
 
-    private float centerX, centerY, radius, innerRadius; // Añadido innerRadius
+    private float centerX, centerY, radius, innerRadius;
     private Section touchedSection = Section.NONE;
     private ValueAnimator progressAnimator;
     private ValueAnimator scaleAnimator;
@@ -83,9 +82,6 @@ public class AlertPieView extends View {
         progressPaint.setStyle(Paint.Style.FILL);
         progressPaint.setColor(Color.argb(128, 255, 255, 255));
 
-        pieBounds = new RectF();
-
-        // Carga de iconos
         iconSeguridad = ContextCompat.getDrawable(getContext(), R.drawable.ic_security);
         iconSalud = ContextCompat.getDrawable(getContext(), R.drawable.ic_health);
         iconIncendio = ContextCompat.getDrawable(getContext(), R.drawable.ic_fire);
@@ -98,8 +94,7 @@ public class AlertPieView extends View {
         centerX = w / 2f;
         centerY = h / 2f;
         radius = Math.min(w, h) / 2f * 0.9f;
-        innerRadius = radius * 0.33f; // Define el radio interior (el "agujero" del donut)
-        pieBounds.set(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+        innerRadius = radius * 0.33f;
     }
 
     @Override
@@ -109,22 +104,19 @@ public class AlertPieView extends View {
         float sweepAngle = 90 - MARGIN_ANGLE;
         float halfMargin = MARGIN_ANGLE / 2;
 
-        // Dibuja las 4 secciones
         drawSection(canvas, 180 + halfMargin, sweepAngle, paintSeguridad, Section.SEGURIDAD);
         drawSection(canvas, 270 + halfMargin, sweepAngle, paintSalud, Section.SALUD);
         drawSection(canvas, 0 + halfMargin, sweepAngle, paintIncendio, Section.INCENDIO);
         drawSection(canvas, 90 + halfMargin, sweepAngle, paintAsistencia, Section.ASISTENCIA);
 
-        // Dibuja el contenido (íconos y texto)
         drawSectionContent(canvas, "Seguridad", iconSeguridad, 225);
         drawSectionContent(canvas, "Salud", iconSalud, 315);
         drawSectionContent(canvas, "Incendio", iconIncendio, 45);
         drawSectionContent(canvas, "Asistencia", iconAsistencia, 135);
 
-        // Dibuja el progreso de la pulsación
         if (touchedSection != Section.NONE && animationProgress > 0) {
             float startAngle = getStartAngleForSection(touchedSection);
-            Path progressPath = createRoundedDonutSegmentPath(startAngle, sweepAngle * animationProgress, CORNER_RADIUS, innerRadius);
+            Path progressPath = createRoundedDonutSegmentPath(startAngle, sweepAngle * animationProgress);
             canvas.drawPath(progressPath, progressPaint);
         }
     }
@@ -134,47 +126,53 @@ public class AlertPieView extends View {
         if (section == touchedSection) {
             canvas.scale(currentScale, currentScale, centerX, centerY);
         }
-        Path path = createRoundedDonutSegmentPath(startAngle, sweepAngle, CORNER_RADIUS, innerRadius);
+        Path path = createRoundedDonutSegmentPath(startAngle, sweepAngle);
         canvas.drawPath(path, paint);
         canvas.restore();
     }
 
     /**
      * --- MÉTODO CORREGIDO ---
-     * Crea un Path para un segmento de "dona" (anillo) redondeado.
-     * Esto soluciona los problemas de márgenes y bordes.
+     * Dibuja un segmento de anillo con bordes redondeados de forma precisa,
+     * eliminando las "protuberancias".
      */
-    private Path createRoundedDonutSegmentPath(float startAngle, float sweepAngle, float cornerRadius, float innerR) {
-        final Path path = new Path();
-        final RectF outerRect = new RectF(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
-        final RectF innerRect = new RectF(centerX - innerR, centerY - innerR, centerX + innerR, centerY + innerR);
+    private Path createRoundedDonutSegmentPath(float startAngle, float sweepAngle) {
+        Path path = new Path();
 
-        float rad = (float) Math.toRadians(startAngle);
-        float x = centerX + (radius - cornerRadius) * (float) Math.cos(rad);
-        float y = centerY + (radius - cornerRadius) * (float) Math.sin(rad);
-        path.moveTo(x, y);
-        path.arcTo(new RectF(x - cornerRadius, y - cornerRadius, x + cornerRadius, y + cornerRadius), startAngle - 180, 90);
+        float outerRadius = this.radius;
+        float innerRadius = this.innerRadius;
+        float cornerRadius = CORNER_RADIUS;
 
-        path.arcTo(outerRect, startAngle, sweepAngle - (float) Math.toDegrees(2 * Math.asin(cornerRadius / radius)));
+        double startAngleRad = Math.toRadians(startAngle);
+        double endAngleRad = Math.toRadians(startAngle + sweepAngle);
 
-        rad = (float) Math.toRadians(startAngle + sweepAngle);
-        x = centerX + (radius - cornerRadius) * (float) Math.cos(rad);
-        y = centerY + (radius - cornerRadius) * (float) Math.sin(rad);
-        path.arcTo(new RectF(x - cornerRadius, y - cornerRadius, x + cornerRadius, y + cornerRadius), startAngle + sweepAngle - 90, 90);
+        // Puntos de esquina del arco exterior
+        double outerCornerAngle = Math.toDegrees(Math.asin(cornerRadius / (outerRadius - cornerRadius)));
+        RectF outerRect = new RectF(centerX - outerRadius, centerY - outerRadius, centerX + outerRadius, centerY + outerRadius);
+        path.arcTo(outerRect, (float) (startAngle + outerCornerAngle), (float) (sweepAngle - 2 * outerCornerAngle));
 
-        float innerCornerRadius = (innerR == 0) ? 0 : cornerRadius;
-        rad = (float) Math.toRadians(startAngle + sweepAngle);
-        x = centerX + (innerR + innerCornerRadius) * (float) Math.cos(rad);
-        y = centerY + (innerR + innerCornerRadius) * (float) Math.sin(rad);
-        path.lineTo(x, y);
-        path.arcTo(new RectF(x - innerCornerRadius, y - innerCornerRadius, x + innerCornerRadius, y + innerCornerRadius), startAngle + sweepAngle, 90);
+        // Curva de la esquina exterior-derecha (de transición)
+        RectF outerCornerRight = new RectF(
+                (float) (centerX + (outerRadius - cornerRadius) * Math.cos(endAngleRad) - cornerRadius),
+                (float) (centerY + (outerRadius - cornerRadius) * Math.sin(endAngleRad) - cornerRadius),
+                (float) (centerX + (outerRadius - cornerRadius) * Math.cos(endAngleRad) + cornerRadius),
+                (float) (centerY + (outerRadius - cornerRadius) * Math.sin(endAngleRad) + cornerRadius)
+        );
+        path.arcTo(outerCornerRight, startAngle + sweepAngle - 90, 90);
 
-        path.arcTo(innerRect, startAngle + sweepAngle, -sweepAngle + (float) Math.toDegrees(2 * Math.asin(innerCornerRadius / innerR)));
+        // Puntos de esquina del arco interior
+        double innerCornerAngle = Math.toDegrees(Math.asin(cornerRadius / (innerRadius + cornerRadius)));
+        RectF innerRect = new RectF(centerX - innerRadius, centerY - innerRadius, centerX + innerRadius, centerY + innerRadius);
+        path.arcTo(innerRect, (float) (startAngle + sweepAngle - innerCornerAngle), (float) -(sweepAngle - 2 * innerCornerAngle));
 
-        rad = (float) Math.toRadians(startAngle);
-        x = centerX + (innerR + innerCornerRadius) * (float) Math.cos(rad);
-        y = centerY + (innerR + innerCornerRadius) * (float) Math.sin(rad);
-        path.arcTo(new RectF(x - innerCornerRadius, y - innerCornerRadius, x + innerCornerRadius, y + innerCornerRadius), startAngle + 90, 90);
+        // Curva de la esquina interior-izquierda (de transición)
+        RectF innerCornerLeft = new RectF(
+                (float) (centerX + (innerRadius + cornerRadius) * Math.cos(startAngleRad) - cornerRadius),
+                (float) (centerY + (innerRadius + cornerRadius) * Math.sin(startAngleRad) - cornerRadius),
+                (float) (centerX + (innerRadius + cornerRadius) * Math.cos(startAngleRad) + cornerRadius),
+                (float) (centerY + (innerRadius + cornerRadius) * Math.sin(startAngleRad) + cornerRadius)
+        );
+        path.arcTo(innerCornerLeft, startAngle + 90, 90);
 
         path.close();
         return path;
@@ -319,3 +317,4 @@ public class AlertPieView extends View {
         }
     }
 }
+
