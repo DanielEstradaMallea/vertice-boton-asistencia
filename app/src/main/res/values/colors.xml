@@ -4,13 +4,22 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- Paleta de colores para AlertPieView -->
-    <color name="seguridad">#3498DB</color> <!-- Azul -->
-    <color name="salud">#2ECC71</color>     <!-- Verde -->
-    <color name="incendio">#E74C3C</color>  <!-- Rojo -->
-    <color name="asistencia">#F1C40F</color>
-    <color name="colorIncendio">#D32F2F</color>
-    <color name="colorSalud">#D32F2F</color>
-    <color name="colorSeguridad">#D32F2F</color>
-    <color name="colorAsistencia">#D32F2F</color>
-    <color name="ripple_light">#33000000</color><!-- Amarillo -->
+    <color name="seguridad">#2563EB</color>
+    <color name="salud">#16A34A</color>
+    <color name="incendio">#DC2626</color>
+    <color name="asistencia">#F97316</color>
+    <color name="panicCenterBackground">#24344D</color>
+    <color name="panicCenterHighlight">#3B4E6E</color>
+    <color name="progressOverlay">#66FFFFFF</color>
+
+    <!-- Estilos de interfaz -->
+    <color name="titleOnGradient">#FFFFFFFF</color>
+    <color name="bodyOnGradient">#E2E8F0</color>
+    <color name="panicCardBackground">#1E293B</color>
+    <color name="panicCardStroke">#334155</color>
+    <color name="panicButtonPrimary">#F97316</color>
+    <color name="panicButtonSecondary">#475569</color>
+    <color name="panicButtonText">#FFFFFFFF</color>
+    <color name="panicButtonIcon">#FFFFFFFF</color>
+    <color name="ripple_light">#33000000</color>
 </resources>

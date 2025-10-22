@@ -14,6 +14,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "PANIC_ALERT_URL",
+            "\"https://prototipo-vertice-production.up.railway.app/api/v1/alertas/panico/\""
+        )
+        buildConfigField(
+            "String",
+            "PANIC_ALERT_TOKEN",
+            "\"4ZUEJQnaSzT54Q0Dq61Pk5iCiFkC6Mj_hw0-rf7lN4X8kvABhYEIc97SIOVmYG_E\""
+        )
     }
 
     buildTypes {
