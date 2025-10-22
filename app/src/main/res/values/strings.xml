@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">botonpanicovertice</string>
+    <string name="app_title">VÉRTICE ASISTENCIA</string>
+    <string name="panic_instruction">Mantén presionado el cuadrante deseado durante 3 segundos para enviar la alerta correspondiente.</string>
+    <string name="action_gallery">Galería</string>
+    <string name="action_camera">Capturar foto</string>
+    <string name="content_description_panic_button">Botón de pánico con accesos a diferentes tipos de alerta</string>
+    <string name="panic_center_title">Botón de</string>
+    <string name="panic_center_action">PÁNICO</string>
+    <string name="panic_center_hint">Mantén presionado 3 s</string>
 </resources>

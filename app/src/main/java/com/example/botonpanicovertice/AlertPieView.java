@@ -17,6 +17,10 @@ import android.view.animation.DecelerateInterpolator;
 
 import androidx.core.content.ContextCompat;
 
+import com.example.botonpanicovertice.R;
+
+import java.util.Locale;
+
 public class AlertPieView extends View {
 
     public interface OnAlertListener {
@@ -32,7 +36,9 @@ public class AlertPieView extends View {
     private static final float CORNER_RADIUS = 20f;
 
     private Paint paintSeguridad, paintSalud, paintIncendio, paintAsistencia, textPaint, progressPaint;
+    private Paint centerCirclePaint, centerHighlightPaint, centerTitlePaint, centerSubtitlePaint, centerHintPaint;
     private Drawable iconSeguridad, iconSalud, iconIncendio, iconAsistencia;
+    private String centerTitleText, centerSubtitleText, centerHintText;
 
     private float centerX, centerY, radius, innerRadius;
     private Section touchedSection = Section.NONE;
@@ -74,13 +80,37 @@ public class AlertPieView extends View {
 
         textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(34);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setFakeBoldText(true);
 
         progressPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         progressPaint.setStyle(Paint.Style.FILL);
-        progressPaint.setColor(Color.argb(128, 255, 255, 255));
+        progressPaint.setColor(ContextCompat.getColor(getContext(), R.color.progressOverlay));
+
+        centerCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerCirclePaint.setStyle(Paint.Style.FILL);
+        centerCirclePaint.setColor(ContextCompat.getColor(getContext(), R.color.panicCenterBackground));
+
+        centerHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerHighlightPaint.setStyle(Paint.Style.FILL);
+        centerHighlightPaint.setColor(ContextCompat.getColor(getContext(), R.color.panicCenterHighlight));
+
+        centerTitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerTitlePaint.setColor(Color.WHITE);
+        centerTitlePaint.setTextAlign(Paint.Align.CENTER);
+
+        centerSubtitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerSubtitlePaint.setColor(Color.WHITE);
+        centerSubtitlePaint.setTextAlign(Paint.Align.CENTER);
+        centerSubtitlePaint.setFakeBoldText(true);
+
+        centerHintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerHintPaint.setColor(ContextCompat.getColor(getContext(), R.color.bodyOnGradient));
+        centerHintPaint.setTextAlign(Paint.Align.CENTER);
+
+        centerTitleText = getResources().getString(R.string.panic_center_title);
+        centerSubtitleText = getResources().getString(R.string.panic_center_action);
+        centerHintText = getResources().getString(R.string.panic_center_hint);
 
         iconSeguridad = ContextCompat.getDrawable(getContext(), R.drawable.ic_security);
         iconSalud = ContextCompat.getDrawable(getContext(), R.drawable.ic_health);
@@ -94,7 +124,8 @@ public class AlertPieView extends View {
         centerX = w / 2f;
         centerY = h / 2f;
         radius = Math.min(w, h) / 2f * 0.9f;
-        innerRadius = radius * 0.33f;
+        innerRadius = radius * 0.36f;
+        updateTextSizes();
     }
 
     @Override
@@ -119,6 +150,8 @@ public class AlertPieView extends View {
             Path progressPath = createRoundedDonutSegmentPath(startAngle, sweepAngle * animationProgress);
             canvas.drawPath(progressPath, progressPaint);
         }
+
+        drawCenterContent(canvas);
     }
 
     private void drawSection(Canvas canvas, float startAngle, float sweepAngle, Paint paint, Section section) {
@@ -197,6 +230,31 @@ public class AlertPieView extends View {
 
         icon.setBounds((int) (iconX - iconSize), (int) (iconY - iconSize), (int) (iconX + iconSize), (int) (iconY + iconSize));
         icon.draw(canvas);
+    }
+
+    private void updateTextSizes() {
+        textPaint.setTextSize(radius * 0.14f);
+        centerTitlePaint.setTextSize(radius * 0.11f);
+        centerSubtitlePaint.setTextSize(radius * 0.22f);
+        centerHintPaint.setTextSize(radius * 0.08f);
+    }
+
+    private void drawCenterContent(Canvas canvas) {
+        float outerCircleRadius = innerRadius * 1.1f;
+        canvas.drawCircle(centerX, centerY, outerCircleRadius, centerHighlightPaint);
+        canvas.drawCircle(centerX, centerY, innerRadius * 0.95f, centerCirclePaint);
+
+        Paint.FontMetrics subtitleMetrics = centerSubtitlePaint.getFontMetrics();
+        float subtitleBaseline = centerY - (subtitleMetrics.ascent + subtitleMetrics.descent) / 2;
+        canvas.drawText(centerSubtitleText, centerX, subtitleBaseline, centerSubtitlePaint);
+
+        Paint.FontMetrics titleMetrics = centerTitlePaint.getFontMetrics();
+        float titleBaseline = subtitleBaseline - centerSubtitlePaint.getTextSize() * 0.75f - (titleMetrics.ascent + titleMetrics.descent) / 2;
+        canvas.drawText(centerTitleText.toUpperCase(Locale.getDefault()), centerX, titleBaseline, centerTitlePaint);
+
+        Paint.FontMetrics hintMetrics = centerHintPaint.getFontMetrics();
+        float hintBaseline = subtitleBaseline + centerSubtitlePaint.getTextSize() * 0.8f - (hintMetrics.ascent + hintMetrics.descent) / 2;
+        canvas.drawText(centerHintText, centerX, hintBaseline, centerHintPaint);
     }
 
     @Override
