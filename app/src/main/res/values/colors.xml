@@ -7,7 +7,14 @@
     <color name="seguridad">#3498DB</color> <!-- Azul -->
     <color name="salud">#2ECC71</color>     <!-- Verde -->
     <color name="incendio">#E74C3C</color>  <!-- Rojo -->
-    <color name="asistencia">#F1C40F</color>
+    <color name="asistencia">#F1C40F</color><!-- Amarillo -->
+
+    <color name="panic_center_start">#FF5F6D</color>
+    <color name="panic_center_end">#FF2C53</color>
+    <color name="panic_center_text">#FFFFFFFF</color>
+    <color name="panic_center_hint">#B3FFFFFF</color>
+    <color name="panic_progress_overlay">#66FFFFFF</color>
+    <color name="panic_divider">#40FFFFFF</color>
     <color name="colorIncendio">#D32F2F</color>
     <color name="colorSalud">#D32F2F</color>
     <color name="colorSeguridad">#D32F2F</color>
