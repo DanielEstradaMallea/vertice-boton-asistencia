@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!--
+        Este pathData es la conversión de tu SVG.
+        El grupo <g> del SVG con la transformación 'translate' se ha aplicado
+        al viewport para centrar el ícono correctamente.
+    -->
+    <group
+        android:translateX="64"
+        android:translateY="64">
+        <path
+            android:fillColor="@android:color/white"
+            android:pathData="M128,154.368 L192,282.36945 L226.517333,213.333333 L356.735892,213.332557 C326.677773,271.159881 271.765809,335.16014 192,405.333333 C112.234191,335.16014 57.3222272,271.159881 27.2641079,213.332557 L98.5180584,213.333333 L128,154.368 Z M268.8,0 C332.423203,0 384,51.5767968 384,115.2 C384,132.924092 380.921643,151.412754 374.764929,170.665986 L247.850667,170.666667 L224,122.963883 L192,186.944 L128,58.9638831 L72.128,170.666667 L9.23507092,170.665986 C3.07835697,151.412754 0,132.924092 0,115.2 C0,51.5767968 51.5767968,0 115.2,0 C144.712861,0 171.633638,11.098031 192.016682,29.348444 C212.383272,11.091061 239.296408,0 268.8,0 Z" />
+    </group>
+
+</vector>
