@@ -20,15 +20,41 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <TextView
+        android:id="@+id/tvSubtitulo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="@string/panic_instructions"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/tvTitulo"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <com.example.botonpanicovertice.AlertPieView
         android:id="@+id/alert_pie_view"
+<<<<<<< HEAD
         android:layout_width="350dp"
         android:layout_height="350dp"
         app:layout_constraintTop_toBottomOf="@id/tvTitulo"
         app:layout_constraintBottom_toTopOf="@id/fabTakePhoto"
+=======
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@id/tvSubtitulo"
+        app:layout_constraintBottom_toTopOf="@id/fabCamera"
+>>>>>>> 175f19733081a93c2a0908d7a8b20cacbecde49a
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintVertical_bias="0.3" />
+        app:layout_constraintVertical_bias="0.35"
+        app:layout_constraintDimensionRatio="1:1" />
 
     <HorizontalScrollView
         android:id="@+id/imagePreviewScrollView"

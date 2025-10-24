@@ -6,7 +6,9 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RadialGradient;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
@@ -32,9 +34,11 @@ public class AlertPieView extends View {
     private static final float CORNER_RADIUS = 20f;
 
     private Paint paintSeguridad, paintSalud, paintIncendio, paintAsistencia, textPaint, progressPaint;
+    private Paint centerCirclePaint, centerPrimaryTextPaint, centerSecondaryTextPaint, dividerPaint;
     private Drawable iconSeguridad, iconSalud, iconIncendio, iconAsistencia;
 
-    private float centerX, centerY, radius, innerRadius;
+    private float centerX, centerY, radius, innerRadius, centerCircleRadius;
+    private float dividerInnerRadius, dividerOuterRadius;
     private Section touchedSection = Section.NONE;
     private ValueAnimator progressAnimator;
     private ValueAnimator scaleAnimator;
@@ -80,7 +84,27 @@ public class AlertPieView extends View {
 
         progressPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         progressPaint.setStyle(Paint.Style.FILL);
-        progressPaint.setColor(Color.argb(128, 255, 255, 255));
+        progressPaint.setColor(ContextCompat.getColor(getContext(), R.color.panic_progress_overlay));
+
+        centerCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerCirclePaint.setStyle(Paint.Style.FILL);
+
+        centerPrimaryTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerPrimaryTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.panic_center_text));
+        centerPrimaryTextPaint.setTextAlign(Paint.Align.CENTER);
+        centerPrimaryTextPaint.setFakeBoldText(true);
+        centerPrimaryTextPaint.setTextSize(spToPx(28));
+
+        centerSecondaryTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerSecondaryTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.panic_center_hint));
+        centerSecondaryTextPaint.setTextAlign(Paint.Align.CENTER);
+        centerSecondaryTextPaint.setTextSize(spToPx(13));
+
+        dividerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        dividerPaint.setColor(ContextCompat.getColor(getContext(), R.color.panic_divider));
+        dividerPaint.setStyle(Paint.Style.STROKE);
+        dividerPaint.setStrokeWidth(dpToPx(2));
+        dividerPaint.setStrokeCap(Paint.Cap.ROUND);
 
         iconSeguridad = ContextCompat.getDrawable(getContext(), R.drawable.ic_security);
         iconSalud = ContextCompat.getDrawable(getContext(), R.drawable.ic_health);
@@ -94,7 +118,23 @@ public class AlertPieView extends View {
         centerX = w / 2f;
         centerY = h / 2f;
         radius = Math.min(w, h) / 2f * 0.9f;
-        innerRadius = radius * 0.33f;
+        innerRadius = radius * 0.36f;
+        centerCircleRadius = Math.max(innerRadius - dpToPx(10), dpToPx(1));
+        dividerInnerRadius = innerRadius + dpToPx(4);
+        dividerOuterRadius = radius - dpToPx(8);
+
+        RadialGradient gradient = new RadialGradient(
+                centerX,
+                centerY,
+                centerCircleRadius,
+                new int[]{
+                        ContextCompat.getColor(getContext(), R.color.panic_center_start),
+                        ContextCompat.getColor(getContext(), R.color.panic_center_end)
+                },
+                null,
+                Shader.TileMode.CLAMP
+        );
+        centerCirclePaint.setShader(gradient);
     }
 
     @Override
@@ -119,6 +159,9 @@ public class AlertPieView extends View {
             Path progressPath = createRoundedDonutSegmentPath(startAngle, sweepAngle * animationProgress);
             canvas.drawPath(progressPath, progressPaint);
         }
+
+        drawDividers(canvas);
+        drawCenterContent(canvas);
     }
 
     private void drawSection(Canvas canvas, float startAngle, float sweepAngle, Paint paint, Section section) {
@@ -197,6 +240,49 @@ public class AlertPieView extends View {
 
         icon.setBounds((int) (iconX - iconSize), (int) (iconY - iconSize), (int) (iconX + iconSize), (int) (iconY + iconSize));
         icon.draw(canvas);
+    }
+
+    private void drawCenterContent(Canvas canvas) {
+        canvas.drawCircle(centerX, centerY, centerCircleRadius, centerCirclePaint);
+
+        String primaryText = getResources().getString(R.string.panic_center_primary);
+        String secondaryText = getResources().getString(R.string.panic_center_hint);
+
+        Paint.FontMetrics primaryFm = centerPrimaryTextPaint.getFontMetrics();
+        Paint.FontMetrics secondaryFm = centerSecondaryTextPaint.getFontMetrics();
+
+        float lineSpacing = dpToPx(6);
+        float primaryHeight = primaryFm.bottom - primaryFm.top;
+        float secondaryHeight = secondaryFm.bottom - secondaryFm.top;
+        float totalHeight = primaryHeight + lineSpacing + secondaryHeight;
+
+        float primaryBaseline = centerY - totalHeight / 2f - primaryFm.top;
+        float secondaryBaseline = primaryBaseline + primaryHeight + lineSpacing - secondaryFm.top;
+
+        canvas.drawText(primaryText, centerX, primaryBaseline, centerPrimaryTextPaint);
+        canvas.drawText(secondaryText, centerX, secondaryBaseline, centerSecondaryTextPaint);
+    }
+
+    private void drawDividers(Canvas canvas) {
+        if (dividerOuterRadius <= dividerInnerRadius) {
+            return;
+        }
+
+        float start = dividerInnerRadius;
+        float end = dividerOuterRadius;
+
+        canvas.drawLine(centerX, centerY - end, centerX, centerY - start, dividerPaint);
+        canvas.drawLine(centerX, centerY + start, centerX, centerY + end, dividerPaint);
+        canvas.drawLine(centerX - end, centerY, centerX - start, centerY, dividerPaint);
+        canvas.drawLine(centerX + start, centerY, centerX + end, centerY, dividerPaint);
+    }
+
+    private float dpToPx(float dp) {
+        return dp * getResources().getDisplayMetrics().density;
+    }
+
+    private float spToPx(float sp) {
+        return sp * getResources().getDisplayMetrics().scaledDensity;
     }
 
     @Override
